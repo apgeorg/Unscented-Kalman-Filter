@@ -11,6 +11,10 @@ using std::vector;
  * Initializes Unscented Kalman filter
  */
 UKF::UKF() {
+  is_initialized_ = false;
+
+  previous_timestamp_ = 0;
+
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;
 
@@ -44,13 +48,21 @@ UKF::UKF() {
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
 
-  /**
-  TODO:
+  // State dimension
+  n_x_ = 5;
 
-  Complete the initialization. See ukf.h for other member properties.
+  // Augmented state dimension
+  n_aug_ = 7;
 
-  Hint: one or more values initialized above might be wildly off...
-  */
+  // Sigma point spreading parameter
+  lambda_ = 3 - n_x_;
+
+  // Predicted sigma points matrix
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+
+  // Weights of sigma points
+  weights_ = VectorXd(2 * n_aug_ + 1);
+
 }
 
 UKF::~UKF() {}
@@ -60,12 +72,87 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
+  /*****************************************************************************
+   *  Initialization
+   ****************************************************************************/
+  if (!is_initialized_) {
+    /**
+      * Initialize the state ekf_.x_ with the first measurement.
+      * Create the covariance matrix.
+      * Remember: you'll need to convert radar from polar to cartesian coordinates.
+    */
+    // first measurement
+    cout << "UKF: " << endl;
+    x_ << 1, 1, 1, 1, 0.1;
 
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
+    P_ << 0.15, 0, 0, 0, 0,
+          0, 0.15, 0, 0, 0,
+          0, 0, 1, 0, 0,
+          0, 0, 0, 1, 0,
+          0, 0, 0, 0, 1;
+
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+          /**
+          Convert radar from polar to cartesian coordinates and initialize state.
+          */
+          float rho = meas_package.raw_measurements_[0]; // range
+          float phi = meas_package.raw_measurements_[1]; // bearing
+          float rhodot = meas_package.raw_measurements_[2]; // velocity of rho
+          //convertion from polar to cartesian
+          float px = rho * cos(phi);
+          float py = rho * sin(phi);
+          float vx = rhodot * cos(phi);
+          float vy = rhodot * sin(phi);
+          float v = sqrt(vx*vx + vy*vy);
+          x_ << px, py, v, 0, 0;
+        }
+        else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+          /**
+          Initialize state.
+          */
+          x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0;
+        }
+
+        //check small numbers
+        if (fabs(x_(0)) < 0.0001 && fabs(x_(1)) < 0.0001) {
+            x_(0) = 0.0001;
+            x_(1) = 0.0001;
+        }
+
+        //init timestamp
+        previous_timestamp_ = meas_package.timestamp_;
+
+        // done initializing, no need to predict or update
+        is_initialized_ = true;
+        return;
+  }
+
+  /*****************************************************************************
+   *  Prediction
+   ****************************************************************************/
+
+  //calculate the timestep between measurements in seconds
+  float dt = meas_package.timestamp_ - previous_timestamp_;
+  dt /= 1000000.0; // convert micros to sec
+  previous_timestamp_ = meas_package.timestamp_;
+
+  Prediction(dt);
+
+  /*****************************************************************************
+   *  Update
+   ****************************************************************************/
+
+  if (meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_) {
+    // Radar updates
+      UpdateRadar(meas_package);
+  } else if (meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_) {
+    // Laser updates
+      UpdateLidar(meas_package);
+  }
+
+  // Print the output
+  cout << "x_ = " << x_ << endl;
+  cout << "P_ = " << P_ << endl;
 }
 
 /**
