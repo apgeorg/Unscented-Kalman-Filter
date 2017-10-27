@@ -13,6 +13,7 @@ using std::vector;
 UKF::UKF() {
   is_initialized_ = false;
 
+  // Previous timestamp
   previous_timestamp_ = 0;
 
   // if this is false, laser measurements will be ignored (except during init)

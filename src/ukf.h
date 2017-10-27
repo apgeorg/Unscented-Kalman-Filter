@@ -70,7 +70,7 @@ public:
   ///* Number of sigma points
   int n_sig_;
 
-  ///* previous timestamp
+  ///* Previous timestamp
   long long previous_timestamp_;
 
   /**
