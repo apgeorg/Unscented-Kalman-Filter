@@ -25,15 +25,15 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 
                VectorXd residual = estimations[i] - ground_truth[i];
 
-               //coefficient-wise multiplication
+               // Coefficient-wise multiplication
                residual = residual.array()*residual.array();
                rmse += residual;
            }
 
-           //calculate the mean
+           // Calculate the mean
            rmse = rmse/estimations.size();
 
-           //calculate the squared root
+           // Calculate the squared root
            rmse = rmse.array().sqrt();
 
        return rmse;
