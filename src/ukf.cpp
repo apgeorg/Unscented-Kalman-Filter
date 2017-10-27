@@ -414,7 +414,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   /*****************************************************************************
    *  Update UKF
    ****************************************************************************/
-    cout << "Update UKF Radar" << endl;
 
   // Measurements
   VectorXd z = meas_package.raw_measurements_;
@@ -441,10 +440,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     while (x_diff(3) < -M_PI) x_diff(3) += 2.*M_PI;
 
     Tc = Tc + weights_(i) * x_diff * z_diff.transpose();
-    cout << i <<") Update UKF Radar TC" << endl << endl;
   }
-
-  cout << "Update UKF Radar2" << endl;
 
   // Kalman Gain K;
   MatrixXd K = Tc * S.inverse();
